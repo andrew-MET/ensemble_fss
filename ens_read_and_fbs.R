@@ -61,6 +61,24 @@ ens_read_and_fbs <- function(
   ) %>%
     harpIO::accumulate(accum_hours)
 
+  guess_fcst_units <- function(df, param) {
+    if (!any(df[["units"]] == "unknown")) {
+      return(df)
+    }
+    if (param == "SURFACCPLUIE") param <- "Pcp"
+    test_col <- paste0("_mbr", formatC(min(fcst_members), width = 3, flag = "0"))
+    units_guess <- harpIO:::guess_units(
+      dplyr::mutate(df, ttt = sapply({{test_col}}, mean)),
+      param
+    )
+    dplyr::mutate(df, units = units_guess)
+  }
+
+  fcst <- structure(
+    lapply(fcst, guess_fcst_units, param),
+    class = "harp_fcst"
+  )
+
   if (any(sapply(fcst, nrow)) == 0) {
     message("No forecast data!")
     return(NULL)
