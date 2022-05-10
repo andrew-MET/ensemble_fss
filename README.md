@@ -14,3 +14,10 @@ From the output of `ens_read_and_fbs()` the Fractions Skill Score can be calcula
 lead time, neighbourhood length, and threshold) and computing 1 - (sum(fbs) / sum(fbs_ref)). 
 
 A couple of methods for plotting the output are also included. 
+
+Note that the development versions of the {_harpIO_} and {_harpVis_} packages are needed, and can be installed with:
+
+```{r}
+remotes::install_github("andrew-met/harpIO", "develop")
+remotes::install_github("andrew-met/harpVis", "gg_geofield")
+```
