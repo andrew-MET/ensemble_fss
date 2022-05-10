@@ -1,0 +1,112 @@
+library(harp)
+library(dplyr)
+
+source("binary_prob.R")
+source("nbhd_upscale.R")
+source("fss.R")
+source("ens_read_and_fbs.R")
+
+# FSS settings
+accum_hours   <- 3
+thresholds    <- c(0.1, 1, 2, 4)
+nbhd_radius   <- seq(0, 10)
+
+# fcst file settings
+fcst_date_times <- seq_dates(2019020100, 2019020600, "1d")
+fcst_lead_times <- seq(3, 24, 3)
+fcst_param      <- "Pcp"
+fcst_model      <- "meps"
+fcst_dir        <- ""
+fcst_template   <- "meps_subset"
+fcst_fmt_opts   <- netcdf_opts("met_norway_eps")
+fcst_members    <- seq(1, 6)
+
+# obs file settings
+obs_param     <- "precipitation_amount"
+obs_dir       <- "/lustre/storeB/immutable/archive/projects/metproduction/yr_short"
+obs_template  <- "{YYYY}/{MM}/{DD}/met_analysis_1_0km_nordic_{YYYY}{MM}{DD}T{HH}Z.nc"
+obs_fmt_opts  <- netcdf_opts(proj4_var = "projection_lcc")
+
+# Get the verification domain
+member_col <- paste0(fcst_model, "_mbr000")
+dom <- read_forecast(
+  date_times       = fcst_date_times[1],
+  fcst_model       = fcst_model,
+  parameter        = fcst_param,
+  members          = 0,
+  lead_time        = 0,
+  file_template    = fcst_template,
+  file_format_opts = fcst_fmt_opts,
+  return_data      = TRUE
+)  %>%
+  get_domain({{member_col}}) %>%
+  subgrid(52, 750, 30, 900)
+
+# Read data and compute unsummarized Fractions Brier Score and ref
+arg_df  <- expand.grid(x = fcst_lead_times, y = fcst_date_times)
+fbs_all <- purrr::map2_dfr(
+  arg_df$y,
+  arg_df$x,
+  ens_read_and_fbs,
+  fcst_model,
+  fcst_param,
+  fcst_members,
+  fcst_dir,
+  fcst_template,
+  fcst_fmt_opts,
+  accum_hours,
+  obs_param,
+  obs_dir,
+  obs_template,
+  obs_fmt_opts,
+  dom,
+  thresholds,
+  nbhd_radius
+)
+
+
+fss_df <- fbs_all %>%
+  dplyr::group_by(fcst_model, lead_time, threshold, nbhd_length) %>%
+  dplyr::summarize(fss = 1 - (sum(fbs) / sum(fbs_ref)))
+
+ggplot(fss_df, aes(x = lead_time, y = fss, colour = fct_inorder(factor(nbhd_length * 2.5)))) +
+  geom_line() +
+  facet_grid(rows = vars(threshold), cols = vars(fcst_model)) +
+  labs(
+    x      = "Lead Time [h]",
+    y      = "Fractions Skill Score",
+    colour = "Neighbourhood\nlength [km]"
+  )
+
+ggplot(fss_df, aes(x = fct_inorder(factor(nbhd_length * 2.5)), y = fct_rev(factor(threshold)), fill = fss)) +
+  geom_raster() +
+  geom_text(aes(label = format(round(fss, digits = 2), nsmall = 2))) +
+  scico::scale_fill_scico(palette = "batlow", direction = 1) +
+  facet_wrap(vars(lead_time)) +
+  #facet_grid(rows = vars(lead_time), cols = vars(fcst_model)) +
+  labs(
+    x    = "Neighbourhood Length [km]",
+    y    = "Threshold [mm]",
+    fill = "Fractions\nSkill Score"
+  ) +
+  coord_fixed(expand = FALSE)
+
+##### plot check
+
+my_map <- get_map(rnaturalearthhires::countries10, get_domain(obs, met_analysis), poly = FALSE)
+ggplot() +
+  geom_georaster(aes(geofield = prob_ge_1), prob$meps[1,]) +
+  scale_fill_scico(
+    na.value  = "transparent",
+    limits    = c(0.1, NA),
+    palette   = "hawaii",
+    direction = -1
+  ) +
+  geom_path(aes(x, y), my_map, colour = "grey70", size = 0.2) +
+  facet_wrap(vars(format(validdate, "%H:%M %a %d %b"))) +
+  coord_equal(expand = FALSE) +
+  theme_harp_map()
+
+
+
+
