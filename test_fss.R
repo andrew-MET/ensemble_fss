@@ -1,11 +1,12 @@
 library(harp)
 library(dplyr)
 library(meteogrid)
+library(here)
 
-source("binary_prob.R")
-source("nbhd_upscale.R")
-source("fss.R")
-source("ens_read_and_fbs.R")
+source(here("binary_prob.R"))
+source(here("nbhd_upscale.R"))
+source(here("fss.R"))
+source(here("ens_read_and_fbs.R"))
 
 # FSS settings
 accum_hours   <- 3
@@ -13,7 +14,7 @@ thresholds    <- c(0.1, 1, 2, 4)
 nbhd_radius   <- seq(0, 10)
 
 # fcst file settings
-fcst_date_times <- seq_dates(2019020100, 2019020600, "1d")
+fcst_date_times <- seq_dates(2019020100, 2019020200, "1d")
 fcst_lead_times <- seq(3, 24, 3)
 fcst_param      <- "Pcp"
 fcst_model      <- "meps"
@@ -44,10 +45,14 @@ dom <- read_forecast(
   subgrid(52, 750, 30, 900)
 
 # Read data and compute unsummarized Fractions Brier Score and ref
-arg_df  <- expand.grid(x = fcst_lead_times, y = fcst_date_times)
+arg_df  <- expand.grid(
+  fcst_lead_times = fcst_lead_times,
+  fcst_date_times = fcst_date_times
+)
+
 fbs_all <- purrr::map2_dfr(
-  arg_df$y,
-  arg_df$x,
+  arg_df$fcst_date_times,
+  arg_df$fcst_lead_times,
   ens_read_and_fbs,
   fcst_model,
   fcst_param,
