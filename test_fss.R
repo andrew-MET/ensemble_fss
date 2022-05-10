@@ -1,5 +1,6 @@
 library(harp)
 library(dplyr)
+library(meteogrid)
 
 source("binary_prob.R")
 source("nbhd_upscale.R")
@@ -81,7 +82,7 @@ ggplot(fss_df, aes(x = lead_time, y = fss, colour = fct_inorder(factor(nbhd_leng
 ggplot(fss_df, aes(x = fct_inorder(factor(nbhd_length * 2.5)), y = fct_rev(factor(threshold)), fill = fss)) +
   geom_raster() +
   geom_text(aes(label = format(round(fss, digits = 2), nsmall = 2))) +
-  scico::scale_fill_scico(palette = "batlow", direction = 1) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1) +
   facet_wrap(vars(lead_time)) +
   #facet_grid(rows = vars(lead_time), cols = vars(fcst_model)) +
   labs(
