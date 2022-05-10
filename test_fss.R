@@ -2,6 +2,7 @@ library(harp)
 library(dplyr)
 library(meteogrid)
 library(here)
+library(forcats) # only used for plotting
 
 source(here("binary_prob.R"))
 source(here("nbhd_upscale.R"))
@@ -12,6 +13,7 @@ source(here("ens_read_and_fbs.R"))
 accum_hours   <- 3
 thresholds    <- c(0.1, 1, 2, 4)
 nbhd_radius   <- seq(0, 10)
+groupings     <- "lead_time"
 
 # fcst file settings
 fcst_date_times <- seq_dates(2019020100, 2019020200, "1d")
@@ -70,11 +72,19 @@ fbs_all <- purrr::map2_dfr(
   nbhd_radius
 )
 
+# Compute the FSS - always group by fcst_model, threshold and nbhd_length
+# and user supplied group
+groupings <- union(
+  groupings,
+  c("fcst_model", "threshold", "nbhd_length")
+)
 
 fss_df <- fbs_all %>%
-  dplyr::group_by(fcst_model, lead_time, threshold, nbhd_length) %>%
+  dplyr::group_by(!!!rlang::syms(groupings)) %>%
   dplyr::summarize(fss = 1 - (sum(fbs) / sum(fbs_ref)))
 
+# Plot FSS as a function of lead time - line colour is nbhd_length in km,
+# and one panel for each threshold
 ggplot(fss_df, aes(x = lead_time, y = fss, colour = fct_inorder(factor(nbhd_length * 2.5)))) +
   geom_line() +
   facet_grid(rows = vars(threshold), cols = vars(fcst_model)) +
@@ -84,6 +94,7 @@ ggplot(fss_df, aes(x = lead_time, y = fss, colour = fct_inorder(factor(nbhd_leng
     colour = "Neighbourhood\nlength [km]"
   )
 
+# Plot FSS as a heat map - one panel for each lead time
 ggplot(fss_df, aes(x = fct_inorder(factor(nbhd_length * 2.5)), y = fct_rev(factor(threshold)), fill = fss)) +
   geom_raster() +
   geom_text(aes(label = format(round(fss, digits = 2), nsmall = 2))) +
@@ -97,21 +108,6 @@ ggplot(fss_df, aes(x = fct_inorder(factor(nbhd_length * 2.5)), y = fct_rev(facto
   ) +
   coord_fixed(expand = FALSE)
 
-##### plot check
-
-my_map <- get_map(rnaturalearthhires::countries10, get_domain(obs, met_analysis), poly = FALSE)
-ggplot() +
-  geom_georaster(aes(geofield = prob_ge_1), prob$meps[1,]) +
-  scale_fill_scico(
-    na.value  = "transparent",
-    limits    = c(0.1, NA),
-    palette   = "hawaii",
-    direction = -1
-  ) +
-  geom_path(aes(x, y), my_map, colour = "grey70", size = 0.2) +
-  facet_wrap(vars(format(validdate, "%H:%M %a %d %b"))) +
-  coord_equal(expand = FALSE) +
-  theme_harp_map()
 
 
 
