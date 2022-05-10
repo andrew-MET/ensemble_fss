@@ -39,6 +39,7 @@ dom <- read_forecast(
   parameter        = fcst_param,
   members          = 0,
   lead_time        = 0,
+  file_path        = fcst_path,
   file_template    = fcst_template,
   file_format_opts = fcst_fmt_opts,
   return_data      = TRUE
