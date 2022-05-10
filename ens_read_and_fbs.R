@@ -50,6 +50,7 @@ ens_read_and_fbs <- function(
     parameter           = fcst_param,
     members             = fcst_members,
     lead_time           = fcst_lead_times,
+    file_path           = fcst_dir,
     file_template       = fcst_template,
     file_format_opts    = fcst_fmt_opts,
     transformation      = "regrid",
