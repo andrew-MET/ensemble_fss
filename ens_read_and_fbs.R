@@ -75,7 +75,7 @@ ens_read_and_fbs <- function(
   }
 
   fcst <- structure(
-    lapply(fcst, guess_fcst_units, param),
+    lapply(fcst, guess_fcst_units, fcst_param),
     class = "harp_fcst"
   )
 
