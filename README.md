@@ -15,9 +15,10 @@ lead time, neighbourhood length, and threshold) and computing 1 - (sum(fbs) / su
 
 A couple of methods for plotting the output are also included. 
 
-Note that the development versions of the {_harpIO_} and {_harpVis_} packages are needed, and can be installed with:
+Note that the {_here_} package and the development versions of the {_harpIO_} and {_harpVis_} packages are needed, and can be installed with:
 
 ```{r}
+install.packages("here")
 remotes::install_github("andrew-met/harpIO", "develop")
 remotes::install_github("andrew-met/harpVis", "gg_geofield")
 ```
