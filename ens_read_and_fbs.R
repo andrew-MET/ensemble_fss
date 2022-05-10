@@ -68,7 +68,7 @@ ens_read_and_fbs <- function(
     if (param == "SURFACCPLUIE") param <- "Pcp"
     test_col <- paste0("_mbr", formatC(min(fcst_members), width = 3, flag = "0"))
     units_guess <- harpIO:::guess_units(
-      dplyr::mutate(df, ttt = sapply({{test_col}}, mean)),
+      dplyr::mutate(df, across(matches("_mbr001"), ~sapply(.x, mean), .names = "ttt")),
       param
     )
     dplyr::mutate(df, units = units_guess)
