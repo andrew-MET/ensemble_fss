@@ -2,6 +2,7 @@ library(harp)
 library(dplyr)
 library(meteogrid)
 library(here)
+library(purrr)
 library(forcats) # only used for plotting
 
 source(here("binary_prob.R"))
@@ -35,7 +36,7 @@ obs_fmt_opts  <- netcdf_opts(proj4_var = "projection_lcc")
 member_col <- paste0(fcst_model, "_mbr000")
 dom <- read_forecast(
   date_times       = fcst_date_times[1],
-  fcst_model       = fcst_model,
+  fcst_model       = fcst_model[1],
   parameter        = fcst_param,
   members          = 0,
   lead_time        = 0,
@@ -44,7 +45,10 @@ dom <- read_forecast(
   file_format_opts = fcst_fmt_opts,
   return_data      = TRUE
 )  %>%
-  get_domain({{member_col}}) %>%
+  pluck(1) %>%
+  pull({{member_col}}) %>%
+  pluck(1) %>%
+  as.geodomain() %>%
   subgrid(52, 750, 30, 900)
 
 # Read data and compute unsummarized Fractions Brier Score and ref
