@@ -18,7 +18,7 @@ groupings     <- "lead_time"
 
 # fcst file settings
 fcst_date_times <- seq_dates(2019020100, 2019020200, "1d")
-fcst_lead_times <- seq(3, 24, 3)
+fcst_lead_times <- seq(3, 6, 3)
 fcst_param      <- "Pcp"
 fcst_model      <- "meps"
 fcst_dir        <- ""
@@ -33,7 +33,7 @@ obs_template  <- "{YYYY}/{MM}/{DD}/met_analysis_1_0km_nordic_{YYYY}{MM}{DD}T{HH}
 obs_fmt_opts  <- netcdf_opts(proj4_var = "projection_lcc")
 
 # Get the verification domain
-member_col <- paste0(fcst_model, "_mbr000")
+member_col <- paste0(fcst_model[1], "_mbr000")
 dom <- read_forecast(
   date_times       = fcst_date_times[1],
   fcst_model       = fcst_model[1],
