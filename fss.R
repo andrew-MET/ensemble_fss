@@ -1,7 +1,7 @@
 fss <- function(
-  fcst, obs, thresh = NA, radius = NA, comparator = `>=`, aggregate = TRUE
+  fcst, obs, thresh = NA, radius = NA, comparator = `>=`, aggregate = FALSE
 ) {
-  useMethod("fss")
+  UseMethod("fss")
 }
 
 fss.geofield <- function(
@@ -28,7 +28,7 @@ fss.geofield <- function(
 }
 
 fss.geolist <- function(
-  fcst, obs, thresh = NA, radius = NA, comparator = `>=`
+  fcst, obs, thresh = NA, radius = NA, comparator = `>=`, aggregate = FALSE
 ) {
 
   stopifnot(inherits(obs, "geolist"))
