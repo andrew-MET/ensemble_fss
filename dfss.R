@@ -27,7 +27,7 @@ ggplot(filter(harpPoint::gather_members(fcst)$meps, lead_time == 18)) +
   scale_fill_viridis_c(
     NULL,
     option = "C",
-    limits = c(0.1, NA),
+    limits = c(1, NA),
     na.value = "transparent",
     trans = "log",
     breaks = c(0.125, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64),
@@ -50,8 +50,8 @@ fss_pair <- function(mbr1, mbr2, threshold = 0.1, test_radii = seq(0, 10)) {
     if (pair_fss >= 0.5) break
   }
 
-  cover1 <- paste(sum(binary_prob(mbr1, threshold)),  "/",  length(mbr1))
-  cover2 <- paste(sum(binary_prob(mbr2, threshold)),  "/",  length(mbr2))
+  cover1 <- paste0(sum(binary_prob(mbr1, threshold)),  "/",  length(mbr1))
+  cover2 <- paste0(sum(binary_prob(mbr2, threshold)),  "/",  length(mbr2))
 
   if (pair_fss < 0.5) {
     radius <- radius + 1000 + pair_fss
@@ -74,9 +74,12 @@ fss_all_pairs <- function(.fcst, threshold = 0.1, test_radii = seq(0, 10)) {
     for (j in 1:(length(members) - 1)) {
       for (k in (j + 1):length(members)) {
         pair_counter <- pair_counter + 1
-        mbrA <- .fcst[[members[j]]][[i]]
-        mbrB <- .fcst[[members[k]]][[i]]
-        res <- fss_pair(mbrA, mbrB, threshold, test_radii)
+        res <- fss_pair(
+          .fcst[[members[j]]][[i]],
+          .fcst[[members[k]]][[i]],
+          threshold,
+          test_radii
+        )
         inrow[[pair_counter]] <- res[[1]]
         message(
           members[j], " vs ", members[k], " :",  inrow[[pair_counter]],
@@ -87,5 +90,10 @@ fss_all_pairs <- function(.fcst, threshold = 0.1, test_radii = seq(0, 10)) {
     out[[i]] <- unlist(inrow)
   }
   out
+}
+
+truncate_scales <- function(scls) {
+  scls[scls > 1000] <- floor(scls[scls > 1000] - 1000)
+  scls
 }
 
