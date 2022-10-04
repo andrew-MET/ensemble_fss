@@ -5,6 +5,11 @@ library(harpMET)
 library(harpIO)
 library(harpVis)
 library(dplyr)
+library(here)
+
+source(here("binary_prob.R"))
+source(here("nbhd_upscale.R"))
+source(here("fss.R"))
 
 # Read some random members precipitation forecasts plus the control
 members <- c(0, sample(seq(1, 29), 6))
@@ -45,11 +50,14 @@ fss_pair <- function(mbr1, mbr2, threshold = 0.1, test_radii = seq(0, 10)) {
     if (pair_fss >= 0.5) break
   }
 
+  cover1 <- paste(sum(binary_prob(mbr1, threshold)),  "/",  length(mbr1))
+  cover2 <- paste(sum(binary_prob(mbr2, threshold)),  "/",  length(mbr2))
+
   if (pair_fss < 0.5) {
-    radius <- radius + 1000
+    radius <- radius + 1000 + pair_fss
   }
 
-  radius
+  list(radius, cover1, cover2)
 }
 
 # Function to get the FSS scale for each pair of members
@@ -59,15 +67,25 @@ fss_all_pairs <- function(.fcst, threshold = 0.1, test_radii = seq(0, 10)) {
 
   # Generate all of the member combinations
   members <- grep("_mbr[[:digit:]]", colnames(.fcst), value = TRUE)
-  counter <- 0
-  for (i in 1:(length(members) - 1)) {
-    for (j in (i + 1):length(members)) {
-      counter <- counter + 1
-      mbrA <- .fcst[[members[i]]][[1]]
-      mbrB <- .fcst[[members[j]]][[1]]
-      out[[counter]] <- fss_pair(mbrA, mbrB, threshold, test_radii)
-      cat(members[i], " vs ", members[j], " :",  out[[counter]], "\n")
+  for (i in 1:nrow(.fcst)) {
+    pair_counter <- 0
+    inrow <- list()
+    message("Forecast : ", .fcst$fcdate[[i]], " | Lead Time : ", .fcst$lead_time[[i]])
+    for (j in 1:(length(members) - 1)) {
+      for (k in (j + 1):length(members)) {
+        pair_counter <- pair_counter + 1
+        mbrA <- .fcst[[members[j]]][[i]]
+        mbrB <- .fcst[[members[k]]][[i]]
+        res <- fss_pair(mbrA, mbrB, threshold, test_radii)
+        inrow[[pair_counter]] <- res[[1]]
+        message(
+          members[j], " vs ", members[k], " :",  inrow[[pair_counter]],
+          " ", res[[2]], " ", res[[3]]
+        )
+      }
     }
+    out[[i]] <- unlist(inrow)
   }
-  unlist(out)
+  out
 }
+
