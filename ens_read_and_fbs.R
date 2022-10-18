@@ -14,7 +14,8 @@ ens_read_and_fbs <- function(
   obs_fmt_opts,
   verif_domain,
   thresholds,
-  nbhds
+  nbhds,
+  num_cores = 1
 ) {
 
   lead_times_res <- unique(diff(fcst_lead_times))
@@ -140,25 +141,39 @@ ens_read_and_fbs <- function(
     dplyr::select(obs[["obs_det"]], -.data[["parameter"]])
   )
 
+
+
   get_prob <- function(thresh, .fcst) {
     fcst_prob_col <- paste0("prob_ge_", thresh)
     harpIO::ens_stats(
       .fcst, mean = FALSE, spread = FALSE,
-      prob_thresh = thresh, keep_members = FALSE
+      prob_thresh = thresh, keep_members = TRUE
     ) %>%
-      dplyr::transmute(
-        .data[["fcdate"]],
-        .data[["validdate"]],
-        .data[["lead_time"]],
-        .data[["accum"]],
+      mutate(
         threshold = thresh,
-        fcst_prob = .data[[fcst_prob_col]],
         obs_prob  = binary_prob(.data[["obs"]], thresh),
-      )
+        across(
+          matches("_mbr[[:digit:]]{3}"),
+          ~as_geolist(lapply(
+            .x, function(x) binary_prob(x, thresh)
+          ))
+        )
+      ) %>%
+      rename(fcst_prob = .data[[fcst_prob_col]]) #%>%
+    #   dplyr::transmute(
+    #     .data[["fcdate"]],
+    #     .data[["validdate"]],
+    #     .data[["lead_time"]],
+    #     .data[["accum"]],
+    #     threshold = thresh,
+    #     fcst_prob = .data[[fcst_prob_col]],
+    #     obs_prob  = binary_prob(.data[["obs"]], thresh),
+    #     dplyr::matches("_mbr[[:digit:]]{3}")
+    #   )
   }
 
   get_nbhd_fbs <- function(nbhd, .prob) {
-    dplyr::mutate(
+    res <- dplyr::mutate(
       .prob,
       fcst_prob = nbhd_upscale(.data[["fcst_prob"]], nbhd),
       obs_prob  = nbhd_upscale(.data[["obs_prob"]], nbhd)
@@ -173,20 +188,65 @@ ens_read_and_fbs <- function(
         fbs         = fbs(.data[["fcst_prob"]], .data[["obs_prob"]]),
         fbs_ref     = fbs_ref(.data[["fcst_prob"]], .data[["obs_prob"]])
       )
+    dfss <- lapply(1:nrow(.prob[[1]]), function(x) dfss_row(.prob[[x]], test_radii = nbhd))
+    efss <- lapply(1:nrow(.prob[[1]]), function(x) efss_row(.prob[[x]], test_radii = nbhd))
+    res <- dplyr::mutate(
+      res,
+      dfbs      = sapply(dfss, function(x) sum(x$fbs)),
+      dfbs_ref  = sapply(dfss, function(x) sum(x$fbs_ref)),
+      dfss_mean = sapply(dfss, function(x) mean(1 - (x$fbs / x$fbs_ref))),
+      dfss_sd   = sapply(dfss, function(x) sd(1 - (x$fbs / x$fbs_ref))),
+      efbs      = sapply(efss, function(x) sum(x$fbs)),
+      efbs_ref  = sapply(efss, function(x) sum(x$fbs_ref)),
+      efss_mean = sapply(efss, function(x) mean(1 - (x$fbs / x$fbs_ref))),
+      efss_sd   = sapply(efss, function(x) sd(1 - (x$fbs / x$fbs_ref)))
+    )
+    res
   }
 
-  purrr::flatten(
-    purrr::flatten(
-      lapply(
-        thresholds,
-        function(x) lapply(
-          nbhds,
-          get_nbhd_fbs,
-          get_prob(x, fcst)
+  if (num_cores > 1) {
+    available_cores <- parallel::detectCores()
+    if (num_cores > available_cores) {
+      warning(num_cores, "requested, but only", available_cores, "found.")
+      num_cores <- available_cores
+    }
+  }
+
+  if (num_cores > 1) {
+
+    output <- purrr::flatten(
+      purrr::flatten(
+        lapply(
+          thresholds,
+          function(x) parallel::mclapply(
+            nbhds,
+            get_nbhd_fbs,
+            get_prob(x, fcst),
+            mc.cores = num_cores
+          )
         )
       )
     )
-  ) %>%
+
+  } else {
+
+    output <- purrr::flatten(
+      purrr::flatten(
+        lapply(
+          thresholds,
+          function(x) lapply(
+            nbhds,
+            get_nbhd_fbs,
+            get_prob(x, fcst)
+          )
+        )
+      )
+    )
+
+  }
+
+
+  output %>%
     dplyr::bind_rows(.id = "fcst_model")
 
 }

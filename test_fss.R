@@ -9,16 +9,17 @@ source(here("binary_prob.R"))
 source(here("nbhd_upscale.R"))
 source(here("fss.R"))
 source(here("ens_read_and_fbs.R"))
+source(here("dfss.R"))
 
 # FSS settings
-accum_hours   <- 3
-thresholds    <- c(0.1, 1, 2, 4)
-nbhd_radius   <- seq(0, 10)
+accum_hours   <- 1
+thresholds    <- c(0.1, 1)
+nbhd_radius   <- seq(0, 23)
 groupings     <- "lead_time"
 
 # fcst file settings
-fcst_date_times <- seq_dates(2019020100, 2019020200, "1d")
-fcst_lead_times <- seq(3, 6, 3)
+fcst_date_times <- 2019020100#seq_dates(2019020100, 2019020200, "1d")
+fcst_lead_times <- seq(3, 24, 3)
 fcst_param      <- "Pcp"
 fcst_model      <- "meps"
 fcst_dir        <- ""
