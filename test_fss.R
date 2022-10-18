@@ -20,7 +20,7 @@ groupings     <- "lead_time"
 
 # fcst file settings
 fcst_date_times <- 2022081500#seq_dates(2019020100, 2019020200, "1d")
-fcst_lead_times <- 1#seq(1, 48, 1)
+fcst_lead_times <- seq(1, 48, 1)
 fcst_param      <- "Pcp"
 fcst_model      <- "meps"
 fcst_dir        <- ""
@@ -51,7 +51,7 @@ dom <- read_forecast(
   pull({{member_col}}) %>%
   pluck(1) %>%
   as.geodomain() %>%
-  subgrid(52, 750, 30, 900)
+  subgrid(72, 750, 80, 900)
 
 # Read data and compute unsummarized Fractions Brier Score and ref
 arg_df  <- expand.grid(
@@ -124,7 +124,7 @@ break_labels <- paste(
   sprintf(breaks[2:length(breaks)], fmt = "%#.2f"),
   sep = "-"
 )
-cols <- colorRampPalette(c("steelblue4", "white", "tomato4"))(length(break_labels))
+cols <- colorRampPalette(c("steelblue4", "white", "indianred4"))(length(break_labels))
 middle_contour <- which.min(abs(breaks - 0.5)) - 1
 contour_cols <- rep("grey70", length(breaks))
 contour_cols[middle_contour] <- "grey20"
