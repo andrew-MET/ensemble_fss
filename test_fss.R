@@ -13,17 +13,18 @@ source(here("dfss.R"))
 
 # FSS settings
 accum_hours   <- 1
-thresholds    <- c(0.1, 1)
-nbhd_radius   <- seq(0, 23)
+thresholds    <- 0.99 #c(0.1, 1)
+quantile_thresh <- TRUE
+nbhd_radius   <- seq(0, 100, 2)
 groupings     <- "lead_time"
 
 # fcst file settings
-fcst_date_times <- 2019020100#seq_dates(2019020100, 2019020200, "1d")
-fcst_lead_times <- seq(3, 24, 3)
+fcst_date_times <- 2022081500#seq_dates(2019020100, 2019020200, "1d")
+fcst_lead_times <- 1#seq(1, 48, 1)
 fcst_param      <- "Pcp"
 fcst_model      <- "meps"
 fcst_dir        <- ""
-fcst_template   <- "meps_subset"
+fcst_template   <- "meps_lagged_6h_subset"
 fcst_fmt_opts   <- netcdf_opts("met_norway_eps")
 fcst_members    <- seq(1, 6)
 
@@ -75,7 +76,9 @@ fbs_all <- purrr::map2_dfr(
   obs_fmt_opts,
   dom,
   thresholds,
-  nbhd_radius
+  nbhd_radius,
+  num_cores = length(nbhd_radius),
+  quantile_thresholds = quantile_thresh
 )
 
 # Compute the FSS - always group by fcst_model, threshold and nbhd_length
@@ -114,7 +117,40 @@ ggplot(fss_df, aes(x = fct_inorder(factor(nbhd_length * 2.5)), y = fct_rev(facto
   ) +
   coord_fixed(expand = FALSE)
 
+# Plot dfss and efss
+breaks <- seq(0, 1, 0.05)
+break_labels <- paste(
+  sprintf(breaks[1:(length(breaks) - 1)], fmt = "%#.2f"),
+  sprintf(breaks[2:length(breaks)], fmt = "%#.2f"),
+  sep = "-"
+)
+cols <- colorRampPalette(c("steelblue4", "white", "tomato4"))(length(break_labels))
+middle_contour <- which.min(abs(breaks - 0.5)) - 1
+contour_cols <- rep("grey70", length(breaks))
+contour_cols[middle_contour] <- "grey20"
 
-
+ggplot(
+  tidyr::pivot_longer(fbs_all, c(efss_mean, dfss_mean)),
+  aes(y = nbhd_length * 2.5, x = lead_time, z = value)
+) +
+  geom_contour_filled(breaks = breaks) +
+  scale_fill_manual(values = cols, labels = break_labels) +
+  geom_contour(
+    aes(colour = factor(after_stat(level))),
+    breaks = breaks
+  ) +
+  scale_colour_manual(
+    values = contour_cols,
+    guide = "none"
+  ) +
+  labs(
+    y = "Neighbourhood Length [km]",
+    x = "Lead Time [h]",
+    fill = "FSS"
+  ) +
+  coord_cartesian(expand = FALSE) +
+  facet_wrap(vars(name)) +
+  scale_x_continuous(breaks = seq(0, 180, 6)) +
+  theme_bw()
 
 

@@ -15,6 +15,7 @@ ens_read_and_fbs <- function(
   verif_domain,
   thresholds,
   nbhds,
+  quantile_thresholds = FALSE,
   num_cores = 1
 ) {
 
@@ -43,6 +44,16 @@ ens_read_and_fbs <- function(
 
   if (length(fcst_lead_times) < 2) {
     stop("Not enough lead times to compute accumulation.", call. = FALSE)
+  }
+
+  if (quantile_thresholds) {
+    if (any(thresholds > 1) || any(thresholds <= 0)) {
+      stop(
+        "For quantile_thresholds = TRUE, ",
+        "all thresholds must be (0 - 1]",
+        call. = FALSE
+      )
+    }
   }
 
   fcst <- harpIO::read_forecast(
@@ -136,6 +147,14 @@ ens_read_and_fbs <- function(
     return(NULL)
   }
 
+  if (quantile_thresholds) {
+    thresholds <- quantile(sum(obs[[1]][["obs"]]), thresholds, na.rm = TRUE)
+    message(
+      "Thresholds: ",
+      paste(sprintf(thresholds, fmt = "%#.3f"), collapse = ", ")
+    )
+  }
+
   fcst <- harpPoint::join_to_fcst(
     fcst,
     dplyr::select(obs[["obs_det"]], -.data[["parameter"]])
@@ -175,8 +194,8 @@ ens_read_and_fbs <- function(
   get_nbhd_fbs <- function(nbhd, .prob) {
     res <- dplyr::mutate(
       .prob,
-      fcst_prob = nbhd_upscale(.data[["fcst_prob"]], nbhd),
-      obs_prob  = nbhd_upscale(.data[["obs_prob"]], nbhd)
+      fcst_prob   = nbhd_upscale(.data[["fcst_prob"]], nbhd),
+      obs_nh_prob = nbhd_upscale(.data[["obs_prob"]], nbhd)
     ) %>%
       dplyr::transmute(
         .data[["fcdate"]],
@@ -185,11 +204,14 @@ ens_read_and_fbs <- function(
         .data[["accum"]],
         .data[["threshold"]],
         nbhd_length = nbhd * 2 + 1,
-        fbs         = fbs(.data[["fcst_prob"]], .data[["obs_prob"]]),
-        fbs_ref     = fbs_ref(.data[["fcst_prob"]], .data[["obs_prob"]])
+        fbs         = fbs(.data[["fcst_prob"]], .data[["obs_nh_prob"]]),
+        fbs_ref     = fbs_ref(.data[["fcst_prob"]], .data[["obs_nh_prob"]])
       )
+
     dfss <- lapply(1:nrow(.prob[[1]]), function(x) dfss_row(.prob[[x]], test_radii = nbhd))
-    efss <- lapply(1:nrow(.prob[[1]]), function(x) efss_row(.prob[[x]], test_radii = nbhd))
+    efss <- lapply(
+      1:nrow(.prob[[1]]),
+      function(x) efss_row(.prob[[x]], test_radii = nbhd, obs_col = "obs_prob"))
     res <- dplyr::mutate(
       res,
       dfbs      = sapply(dfss, function(x) sum(x$fbs)),

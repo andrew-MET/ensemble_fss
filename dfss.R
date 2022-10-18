@@ -1,7 +1,7 @@
 # Some tests for spatial spread using dFSS
 # The scale at which FSS begins to exceed 0.5 for each unique pair of members
 
-library(harpMET)
+#library(harpMET)
 library(harpIO)
 library(harpVis)
 library(dplyr)
@@ -132,6 +132,8 @@ dfss_row <- function(fcst_row, threshold = 0.1, test_radii = seq(0, 10), num_cor
 efss_row <- function(
   fcst_row, obs_col = "obs", threshold = 0.1, test_radii = seq(0, 10), num_cores = 1
 ) {
+
+  print("EFSS ROW")
 
   members <- grep("_mbr[[:digit:]]", colnames(fcst_row), value = TRUE)
   pair_fss <- function(i) {
