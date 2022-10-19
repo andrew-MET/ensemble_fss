@@ -153,6 +153,7 @@ ens_read_and_fbs <- function(
       "Thresholds: ",
       paste(sprintf(thresholds, fmt = "%#.3f"), collapse = ", ")
     )
+    thresholds <- paste(thresholds, names(thresholds), sep = ":")
   }
 
   fcst <- harpPoint::join_to_fcst(
@@ -163,6 +164,13 @@ ens_read_and_fbs <- function(
 
 
   get_prob <- function(thresh, .fcst) {
+    if (is.character(thresh)) {
+      thresh <- strsplit(thresh, ":")[[1]]
+      thresh_q <- thresh[2]
+      thresh   <- as.numeric(thresh[1])
+    } else {
+      thresh_q <- NA_character_
+    }
     fcst_prob_col <- paste0("prob_ge_", thresh)
     harpIO::ens_stats(
       .fcst, mean = FALSE, spread = FALSE,
@@ -170,6 +178,7 @@ ens_read_and_fbs <- function(
     ) %>%
       mutate(
         threshold = thresh,
+        quantile  = thresh_q,
         obs_prob  = binary_prob(.data[["obs"]], thresh),
         across(
           matches("_mbr[[:digit:]]{3}"),
@@ -203,6 +212,7 @@ ens_read_and_fbs <- function(
         .data[["lead_time"]],
         .data[["accum"]],
         .data[["threshold"]],
+        .data[["quantile"]],
         nbhd_length = nbhd * 2 + 1,
         fbs         = fbs(.data[["fcst_prob"]], .data[["obs_nh_prob"]]),
         fbs_ref     = fbs_ref(.data[["fcst_prob"]], .data[["obs_nh_prob"]])
@@ -229,7 +239,7 @@ ens_read_and_fbs <- function(
   if (num_cores > 1) {
     available_cores <- parallel::detectCores()
     if (num_cores > available_cores) {
-      warning(num_cores, "requested, but only", available_cores, "found.")
+      warning(num_cores, " cores requested, but only ", available_cores, " available.")
       num_cores <- available_cores
     }
   }

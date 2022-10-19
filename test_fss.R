@@ -20,7 +20,7 @@ groupings     <- "lead_time"
 
 # fcst file settings
 fcst_date_times <- 2022081500#seq_dates(2019020100, 2019020200, "1d")
-fcst_lead_times <- seq(1, 48, 1)
+fcst_lead_times <- seq(3, 48, 3)
 fcst_param      <- "Pcp"
 fcst_model      <- "meps"
 fcst_dir        <- ""
