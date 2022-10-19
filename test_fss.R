@@ -13,7 +13,7 @@ source(here("dfss.R"))
 
 # FSS settings
 accum_hours   <- 1
-thresholds    <- 0.99 #c(0.1, 1)
+thresholds    <- c(0.9, 0.95, 0.99) #c(0.1, 1)
 quantile_thresh <- TRUE
 nbhd_radius   <- seq(0, 100, 2)
 groupings     <- "lead_time"
@@ -83,9 +83,20 @@ fbs_all <- purrr::map2_dfr(
 
 # Compute the FSS - always group by fcst_model, threshold and nbhd_length
 # and user supplied group
+fixed_groups <- c("fcst_model", "threshold", "nbhd_length")
+thresh_col <- "threshold"
+thresh_label <- "Threshold [mm]"
+forcats_fun <- fct_rev
+if (quantile_thresh) {
+  fixed_groups <- c("fcst_model", "quantile", "nbhd_length")
+  thresh_col <- "quantile"
+  thresh_label <- "Quantile"
+  forcats_fun <- fct_inorder
+}
+
 groupings <- union(
   groupings,
-  c("fcst_model", "threshold", "nbhd_length")
+  fixed_groups
 )
 
 fss_df <- fbs_all %>%
@@ -96,7 +107,7 @@ fss_df <- fbs_all %>%
 # and one panel for each threshold
 ggplot(fss_df, aes(x = lead_time, y = fss, colour = fct_inorder(factor(nbhd_length * 2.5)))) +
   geom_line() +
-  facet_grid(rows = vars(threshold), cols = vars(fcst_model)) +
+  facet_grid(rows = vars(.data[[thresh_col]]), cols = vars(fcst_model)) +
   labs(
     x      = "Lead Time [h]",
     y      = "Fractions Skill Score",
@@ -104,18 +115,18 @@ ggplot(fss_df, aes(x = lead_time, y = fss, colour = fct_inorder(factor(nbhd_leng
   )
 
 # Plot FSS as a heat map - one panel for each lead time
-ggplot(fss_df, aes(x = fct_inorder(factor(nbhd_length * 2.5)), y = fct_rev(factor(threshold)), fill = fss)) +
+ggplot(fss_df, aes(x = fct_inorder(factor(nbhd_length * 2.5)), y = forcats_fun(factor(.data[[thresh_col]])), fill = fss)) +
   geom_raster() +
-  geom_text(aes(label = format(round(fss, digits = 2), nsmall = 2))) +
-  scale_fill_distiller(palette = "YlOrRd", direction = 1) +
+  scale_fill_gradientn(colours = c("steelblue4", "white", "indianred4"), limits = c(0, 1)) +
   facet_wrap(vars(lead_time)) +
   #facet_grid(rows = vars(lead_time), cols = vars(fcst_model)) +
   labs(
     x    = "Neighbourhood Length [km]",
-    y    = "Threshold [mm]",
+    y    = thresh_label,
     fill = "Fractions\nSkill Score"
   ) +
-  coord_fixed(expand = FALSE)
+  coord_fixed(expand = FALSE) #+
+  #geom_text(aes(label = format(round(fss, digits = 2), nsmall = 2)))
 
 # Plot dfss and efss
 breaks <- seq(0, 1, 0.05)
