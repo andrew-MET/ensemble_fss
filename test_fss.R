@@ -13,7 +13,7 @@ source(here("dfss.R"))
 
 # FSS settings
 accum_hours   <- 1
-thresholds    <- c(0.9, 0.95, 0.99) #c(0.1, 1)
+thresholds    <- c(0.9, 0.95, 0.99, 0.999) #c(0.1, 1)
 quantile_thresh <- TRUE
 nbhd_radius   <- seq(0, 100, 2)
 groupings     <- "lead_time"
@@ -117,7 +117,7 @@ ggplot(fss_df, aes(x = lead_time, y = fss, colour = fct_inorder(factor(nbhd_leng
 # Plot FSS as a heat map - one panel for each lead time
 ggplot(fss_df, aes(x = fct_inorder(factor(nbhd_length * 2.5)), y = forcats_fun(factor(.data[[thresh_col]])), fill = fss)) +
   geom_raster() +
-  scale_fill_gradientn(colours = c("steelblue4", "white", "indianred4"), limits = c(0, 1)) +
+  scale_fill_gradientn(colours = c("steelblue4", "white", "darkolivegreen4"), limits = c(0, 1)) +
   facet_wrap(vars(lead_time)) +
   #facet_grid(rows = vars(lead_time), cols = vars(fcst_model)) +
   labs(
@@ -135,7 +135,7 @@ break_labels <- paste(
   sprintf(breaks[2:length(breaks)], fmt = "%#.2f"),
   sep = "-"
 )
-cols <- colorRampPalette(c("steelblue4", "white", "indianred4"))(length(break_labels))
+cols <- colorRampPalette(c("steelblue4", "white", "darkolivegreen4"))(length(break_labels))
 middle_contour <- which.min(abs(breaks - 0.5)) - 1
 contour_cols <- rep("grey70", length(breaks))
 contour_cols[middle_contour] <- "grey20"
@@ -157,10 +157,10 @@ ggplot(
   labs(
     y = "Neighbourhood Length [km]",
     x = "Lead Time [h]",
-    fill = "FSS"
+    fill = "Fractions\nSkill Score"
   ) +
   coord_cartesian(expand = FALSE) +
-  facet_wrap(vars(name)) +
+  facet_grid(cols = vars(name), rows = vars(fct_inorder(.data[[thresh_col]]))) +
   scale_x_continuous(breaks = seq(0, 180, 6)) +
   theme_bw()
 
