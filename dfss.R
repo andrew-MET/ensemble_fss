@@ -75,7 +75,7 @@ unique_pairs <- function(x) {
 }
 
 # Function to get dFSS by comparing all members against each other
-dfss_row <- function(fcst_row, threshold = 0.1, test_radii = seq(0, 10), num_cores = 1) {
+dfss_row <- function(fcst_row, threshold = 0.1, test_radii = seq(0, 10), truncate = FALSE, num_cores = 1) {
 
   # Takes 1 data frame with one row - looping over rows is done by the calling function
 
@@ -119,14 +119,18 @@ dfss_row <- function(fcst_row, threshold = 0.1, test_radii = seq(0, 10), num_cor
   }
 
   if (num_cores > 1) {
-    do.call(
+    res <- do.call(
       rbind,
       parallel::mclapply(1:nrow(member_pairs), pair_fss_prob, mc.cores = num_cores)
     )
+  } else {
+    res <- do.call(rbind, lapply(1:nrow(member_pairs), pair_fss_prob))
   }
 
-  do.call(rbind, lapply(1:nrow(member_pairs), pair_fss_prob))
-
+  data.frame(
+    dfss_mean = 1 - (sum(res[["fbs"]]) / sum(res[["fbs_ref"]])),
+    dfss_sd   = sd(1 - (res[["fbs"]] / res[["fbs_ref"]]))
+  )
 }
 
 efss_row <- function(
