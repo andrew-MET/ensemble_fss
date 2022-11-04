@@ -91,7 +91,7 @@ if (quantile_thresh) {
   fixed_groups <- c("fcst_model", "quantile", "nbhd_length")
   thresh_col <- "quantile"
   thresh_label <- "Quantile"
-  forcats_fun <- fct_inorder
+  fbs_all$quantile <- fct_inorder(fbs_all$quantile)
 }
 
 groupings <- union(
@@ -115,17 +115,17 @@ ggplot(fss_df, aes(x = lead_time, y = fss, colour = fct_inorder(factor(nbhd_leng
   )
 
 # Plot FSS as a heat map - one panel for each lead time
-ggplot(fss_df, aes(x = fct_inorder(factor(nbhd_length * 2.5)), y = forcats_fun(factor(.data[[thresh_col]])), fill = fss)) +
+ggplot(fss_df, aes(x = nbhd_length * 2.5, y = .data[[thresh_col]], fill = fss)) +
   geom_raster() +
   scale_fill_gradientn(colours = c("steelblue4", "white", "darkolivegreen4"), limits = c(0, 1)) +
-  facet_wrap(vars(lead_time)) +
+  facet_wrap(vars(paste0("Lead Time = ",lead_time, "h"))) +
   #facet_grid(rows = vars(lead_time), cols = vars(fcst_model)) +
   labs(
     x    = "Neighbourhood Length [km]",
     y    = thresh_label,
     fill = "Fractions\nSkill Score"
   ) +
-  coord_fixed(expand = FALSE) #+
+  coord_cartesian(expand = FALSE) #+
   #geom_text(aes(label = format(round(fss, digits = 2), nsmall = 2)))
 
 # Plot dfss and efss
@@ -164,4 +164,54 @@ ggplot(
   scale_x_continuous(breaks = seq(0, 180, 6)) +
   theme_bw()
 
+# Extract the FSS = 0.5 contour and plot to compare dfss and efss
 
+skillful_line <- function(lt, nb, z) {
+
+  x   <- unique(lt)
+  y   <- unique(nb)
+  z   <- t(matrix(z, ncol = length(x), nrow = length(y)))
+
+  res <- contourLines(x, y, z, levels = 0.5)
+  res <- lapply(
+    seq_along(res),
+    function(i) dplyr::mutate(data.frame(res[[i]]), group = i)
+  )
+
+  res <- dplyr::bind_rows(res)
+
+  if (nrow(res) == 0) return(NULL)
+
+  dplyr::transmute(
+    res,
+    lead_time = x, nbhd_length = y, group = group
+  )
+
+}
+
+skillful_scale <- dplyr::group_by(
+  tidyr::pivot_longer(fbs_all, c(efss_mean, dfss_mean)),
+  .data[[thresh_col]], .data[["name"]]
+) %>%
+  dplyr::summarise(
+    skill_line = list(
+      skillful_line(
+        .data[["lead_time"]], .data[["nbhd_length"]], .data[["value"]]
+      )
+    )
+  ) %>%
+  tidyr::unnest(skill_line)
+
+ggplot(
+  skillful_scale,
+  aes(lead_time, nbhd_length * 2.5, colour = name, group = paste(name, group))
+) +
+  geom_line(size = 1) +
+  facet_wrap(vars(.data[[thresh_col]]), ncol = 1, scales = "free_y") +
+  scale_colour_manual(NULL, values = c("steelblue", "darkorange3")) +
+  scale_x_continuous(breaks = seq(0, 180, 6)) +
+  labs(
+    x = "Lead Time [h]",
+    y = "Neighbourhood Length [km]"
+  ) +
+  theme_bw()

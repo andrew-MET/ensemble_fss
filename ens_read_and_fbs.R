@@ -269,18 +269,6 @@ ens_read_and_fbs <- function(
         SIMPLIFY = FALSE
       )
     )
-    # output <- purrr::flatten(
-    #   purrr::flatten(
-    #     lapply(
-    #       thresholds,
-    #       function(x) lapply(
-    #         nbhds,
-    #         get_nbhd_fbs,
-    #         get_prob(x, fcst)
-    #       )
-    #     )
-    #   )
-    # )
 
   }
 
