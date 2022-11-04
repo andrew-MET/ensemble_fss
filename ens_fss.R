@@ -69,7 +69,7 @@ ens_fss.harp_spatial_fcst <- function(
     obs_col_name <- rlang::as_name(obs_col)
   }
 
-  if(is.na(gridlength)) gridlength <- 1
+  if (is.na(gridlength)) gridlength <- 1
 
   if (num_cores > 1) {
     if (!requireNamespace("parallel", quietly = TRUE)) {
@@ -150,6 +150,7 @@ ens_fss.harp_spatial_fcst <- function(
 }
 
 call_nbhd_fss <- function(x, .fcst, member_cols, has_obs, obs_col, gridlength) {
+  print("In call_nbhd_fss")
   fcst_temp <- dplyr::mutate(
     .fcst,
     thresh = sapply(.data[["thresh"]], function(y) y[x[["t"]]])

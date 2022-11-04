@@ -215,7 +215,8 @@ ens_read_and_fbs <- function(
         .data[["quantile"]],
         nbhd_length = nbhd * 2 + 1,
         fbs         = fbs(.data[["fcst_prob"]], .data[["obs_nh_prob"]]),
-        fbs_ref     = fbs_ref(.data[["fcst_prob"]], .data[["obs_nh_prob"]])
+        fbs_ref     = fbs_ref(.data[["fcst_prob"]], .data[["obs_nh_prob"]]),
+        fss         = 1 - (.data[["fbs"]] / .data[["fbs_ref"]])
       )
 
     dfss <- lapply(1:nrow(.prob[[1]]), function(x) dfss_row(.prob[[x]], test_radii = nbhd))
@@ -244,36 +245,42 @@ ens_read_and_fbs <- function(
     }
   }
 
+  args_list <- expand.grid(t = thresholds, n = nbhds, stringsAsFactors = FALSE)
+
   if (num_cores > 1) {
 
     output <- purrr::flatten(
-      purrr::flatten(
-        lapply(
-          thresholds,
-          function(x) parallel::mclapply(
-            nbhds,
-            get_nbhd_fbs,
-            get_prob(x, fcst),
-            mc.cores = num_cores
-          )
-        )
+      parallel::mcmapply(
+        function(x, y) get_nbhd_fbs(x, get_prob(y, fcst)),
+        args_list[["n"]],
+        args_list[["t"]],
+        SIMPLIFY = FALSE,
+        mc.cores = num_cores
       )
     )
 
   } else {
 
     output <- purrr::flatten(
-      purrr::flatten(
-        lapply(
-          thresholds,
-          function(x) lapply(
-            nbhds,
-            get_nbhd_fbs,
-            get_prob(x, fcst)
-          )
-        )
+      mapply(
+        function(x, y) get_nbhd_fbs(x, get_prob(y, fcst)),
+        args_list[["n"]],
+        args_list[["t"]],
+        SIMPLIFY = FALSE
       )
     )
+    # output <- purrr::flatten(
+    #   purrr::flatten(
+    #     lapply(
+    #       thresholds,
+    #       function(x) lapply(
+    #         nbhds,
+    #         get_nbhd_fbs,
+    #         get_prob(x, fcst)
+    #       )
+    #     )
+    #   )
+    # )
 
   }
 

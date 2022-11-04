@@ -119,18 +119,18 @@ dfss_row <- function(fcst_row, threshold = 0.1, test_radii = seq(0, 10), truncat
   }
 
   if (num_cores > 1) {
-    res <- do.call(
+    do.call(
       rbind,
       parallel::mclapply(1:nrow(member_pairs), pair_fss_prob, mc.cores = num_cores)
     )
   } else {
-    res <- do.call(rbind, lapply(1:nrow(member_pairs), pair_fss_prob))
+    do.call(rbind, lapply(1:nrow(member_pairs), pair_fss_prob))
   }
 
-  data.frame(
-    dfss_mean = 1 - (sum(res[["fbs"]]) / sum(res[["fbs_ref"]])),
-    dfss_sd   = sd(1 - (res[["fbs"]] / res[["fbs_ref"]]))
-  )
+  # data.frame(
+  #   dfss_mean = 1 - (sum(res[["fbs"]]) / sum(res[["fbs_ref"]])),
+  #   dfss_sd   = sd(1 - (res[["fbs"]] / res[["fbs_ref"]]))
+  # )
 }
 
 efss_row <- function(
