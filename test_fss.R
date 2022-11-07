@@ -208,7 +208,7 @@ ggplot(
 ) +
   geom_line(size = 1) +
   facet_wrap(vars(.data[[thresh_col]]), ncol = 1, scales = "free_y") +
-  scale_colour_manual(NULL, values = c("steelblue", "darkorange3")) +
+  scale_colour_manual(NULL, values = c(dfss_mean = "steelblue", efss_mean = "darkorange3")) +
   scale_x_continuous(breaks = seq(0, 180, 6)) +
   labs(
     x = "Lead Time [h]",
