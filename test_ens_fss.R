@@ -26,4 +26,6 @@ fcst <- join_to_fcst(fcst, obs)
 rm(obs)
 gc()
 
+ens_fss(fcst, seq(0, 20), c(0.95, 0.99), quantile_threshold = TRUE, gridlength = 2.5, num_cores = 8)
+
 

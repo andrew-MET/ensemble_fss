@@ -19,7 +19,7 @@ nbhd_radius   <- seq(0, 100, 2)
 groupings     <- "lead_time"
 
 # fcst file settings
-fcst_date_times <- 2022081500#seq_dates(2019020100, 2019020200, "1d")
+fcst_date_times <- 2022110600#seq_dates(2019020100, 2019020200, "1d")
 fcst_lead_times <- seq(3, 48, 3)
 fcst_param      <- "Pcp"
 fcst_model      <- "meps"
@@ -59,6 +59,8 @@ arg_df  <- expand.grid(
   fcst_date_times = fcst_date_times
 )
 
+start_time <- Sys.time()
+
 fbs_all <- purrr::map2_dfr(
   arg_df$fcst_date_times,
   arg_df$fcst_lead_times,
@@ -80,6 +82,8 @@ fbs_all <- purrr::map2_dfr(
   num_cores = length(nbhd_radius),
   quantile_thresholds = quantile_thresh
 )
+
+print(Sys.time() - start_time)
 
 # Compute the FSS - always group by fcst_model, threshold and nbhd_length
 # and user supplied group

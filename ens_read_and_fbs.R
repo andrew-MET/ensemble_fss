@@ -118,7 +118,7 @@ ens_read_and_fbs <- function(
   if (is.null(obs_template)) obs_template <- ""
   if (any(nchar(c(obs_dir, obs_template)) < 1)) {
     warning(
-      "obs_dir and obs_template must be character string to read observations.",
+      "obs_dir and obs_template must be character strings to read observations.\n",
       "Only DFSS will be computed.",
       call. = FALSE, immediate. = TRUE
     )
@@ -204,7 +204,7 @@ ens_read_and_fbs <- function(
       thresh_q <- NA_character_
     }
     fcst_prob_col <- paste0("prob_ge_", thresh)
-    .fcst <- harpIO::ens_stats(
+    res <- harpIO::ens_stats(
       .fcst, mean = FALSE, spread = FALSE,
       prob_thresh = thresh, keep_members = TRUE
     ) %>%
@@ -220,15 +220,17 @@ ens_read_and_fbs <- function(
       ) %>%
       rename(fcst_prob = .data[[fcst_prob_col]])
 
-    if (is.element("obs", colnames(.fcst))) {
-      .fcst[["obs_prob"]]  = binary_prob(.data[["obs"]], thresh)
+    if (is.element("obs", colnames(res[[1]]))) {
+      res <- dplyr::mutate(
+        res, obs_prob = binary_prob(.data[["obs"]], thresh)
+      )
     }
 
-    .fcst
+    res
   }
 
   get_nbhd_fbs <- function(nbhd, .prob) {
-    if (is.element("obs_prob", colnames(.prob))) {
+    if (is.element("obs_prob", colnames(.prob[[1]]))) {
       res <- dplyr::mutate(
         .prob,
         fcst_prob   = nbhd_upscale(.data[["fcst_prob"]], nbhd),
@@ -262,7 +264,7 @@ ens_read_and_fbs <- function(
         efss_mean = sapply(efss, function(x) mean(1 - (x$fbs / x$fbs_ref))),
         efss_sd   = sapply(efss, function(x) sd(1 - (x$fbs / x$fbs_ref)))
       )
-      res
+      return(res)
     }
 
     res <- dplyr::mutate(
