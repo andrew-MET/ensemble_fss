@@ -34,6 +34,12 @@ obs_dir       <- "/lustre/storeB/immutable/archive/projects/metproduction/yr_sho
 obs_template  <- "{YYYY}/{MM}/{DD}/met_analysis_1_0km_nordic_{YYYY}{MM}{DD}T{HH}Z.nc"
 obs_fmt_opts  <- netcdf_opts(proj4_var = "projection_lcc")
 
+# Parallel settings
+num_cores <- 1
+if (num_cores == "auto") {
+  num_cores <- length(nbhd_radius)
+}
+
 # Get the verification domain
 member_col <- paste0(fcst_model[1], "_mbr000")
 dom <- read_forecast(
@@ -77,9 +83,9 @@ fbs_all <- purrr::map2_dfr(
   obs_template,
   obs_fmt_opts,
   dom,
-  thresholds = c(0.9, 0.95),
+  thresholds,
   nbhd_radius,
-  num_cores = 64,#length(nbhd_radius),
+  num_cores = num_cores,
   quantile_thresholds = quantile_thresh
 )
 
