@@ -77,9 +77,9 @@ fbs_all <- purrr::map2_dfr(
   obs_template,
   obs_fmt_opts,
   dom,
-  thresholds,
+  thresholds = c(0.9, 0.95),
   nbhd_radius,
-  num_cores = length(nbhd_radius),
+  num_cores = 64,#length(nbhd_radius),
   quantile_thresholds = quantile_thresh
 )
 
@@ -149,14 +149,13 @@ ggplot(
   aes(y = nbhd_length * 2.5, x = lead_time, z = value)
 ) +
   geom_contour_filled(breaks = breaks) +
-  scale_fill_manual(values = cols, labels = break_labels) +
-  geom_contour(
-    aes(colour = factor(after_stat(level))),
-    breaks = breaks
-  ) +
+  scale_fill_manual(values = cols, labels = break_labels, drop = FALSE) +
+  geom_contour(breaks = breaks, colour = "grey70") +
+  geom_contour(breaks = 0.5, colour =" grey20") +
   scale_colour_manual(
     values = contour_cols,
-    guide = "none"
+    guide = "none",
+    drop = FALSE
   ) +
   labs(
     y = "Neighbourhood Length [km]",
