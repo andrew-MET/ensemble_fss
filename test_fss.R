@@ -35,7 +35,7 @@ obs_template  <- "{YYYY}/{MM}/{DD}/met_analysis_1_0km_nordic_{YYYY}{MM}{DD}T{HH}
 obs_fmt_opts  <- netcdf_opts(proj4_var = "projection_lcc")
 
 # Parallel settings
-num_cores <- 1
+num_cores <- 20
 if (num_cores == "auto") {
   num_cores <- length(nbhd_radius)
 }
@@ -122,13 +122,15 @@ ggplot(fss_df, aes(x = lead_time, y = fss, colour = fct_inorder(factor(nbhd_leng
     x      = "Lead Time [h]",
     y      = "Fractions Skill Score",
     colour = "Neighbourhood\nlength [km]"
-  )
+  ) +
+  scale_x_continuous(breaks = seq(0, 180, 6)) +
+  theme_bw()
 
 # Plot FSS as a heat map - one panel for each lead time
 ggplot(fss_df, aes(x = nbhd_length * 2.5, y = .data[[thresh_col]], fill = fss)) +
   geom_raster() +
   scale_fill_gradientn(colours = c("steelblue4", "white", "darkolivegreen4"), limits = c(0, 1)) +
-  facet_wrap(vars(paste0("Lead Time = ",lead_time, "h"))) +
+  facet_wrap(vars(fct_inorder(paste0("Lead Time = ",lead_time, "h")))) +
   #facet_grid(rows = vars(lead_time), cols = vars(fcst_model)) +
   labs(
     x    = "Neighbourhood Length [km]",
@@ -146,9 +148,6 @@ break_labels <- paste(
   sep = "-"
 )
 cols <- colorRampPalette(c("steelblue4", "white", "darkolivegreen4"))(length(break_labels))
-middle_contour <- which.min(abs(breaks - 0.5)) - 1
-contour_cols <- rep("grey70", length(breaks))
-contour_cols[middle_contour] <- "grey20"
 
 ggplot(
   tidyr::pivot_longer(fbs_all, c(efss_mean, dfss_mean)),
@@ -158,11 +157,6 @@ ggplot(
   scale_fill_manual(values = cols, labels = break_labels, drop = FALSE) +
   geom_contour(breaks = breaks, colour = "grey70") +
   geom_contour(breaks = 0.5, colour =" grey20") +
-  scale_colour_manual(
-    values = contour_cols,
-    guide = "none",
-    drop = FALSE
-  ) +
   labs(
     y = "Neighbourhood Length [km]",
     x = "Lead Time [h]",
@@ -215,8 +209,8 @@ ggplot(
   skillful_scale,
   aes(lead_time, nbhd_length * 2.5, colour = name, group = paste(name, group))
 ) +
-  geom_line(size = 1) +
-  facet_wrap(vars(.data[[thresh_col]]), ncol = 1, scales = "free_y") +
+  geom_line(linewidth = 1) +
+  facet_wrap(vars(.data[[thresh_col]]), ncol = 1) +
   scale_colour_manual(NULL, values = c(dfss_mean = "steelblue", efss_mean = "darkorange3")) +
   scale_x_continuous(breaks = seq(0, 180, 6)) +
   labs(
